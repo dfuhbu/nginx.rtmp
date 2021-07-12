@@ -4,7 +4,7 @@ ENV TZ=UTC
 ARG NGINX_VERSION=1.21.0
 ARG OPENSSL_VERSION=1.1.1k
 ARG PRCE_VERSION=8.45
-ARG RTMP_VERSION=v1.2.2
+ARG RTMP_MODULE_VERSION=v1.2.2
 
 COPY files/*.sh /
 
@@ -27,21 +27,22 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && make install -j64  \
     # OpenSSL
     && cd /soft/ \
-    && wget https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz \
-    && tar -zxf openssl-${OPENSSL_VERSION}.tar.gz \
-    && cd openssl-${OPENSSL_VERSION} \
+    && wget https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz \
+    && tar -zxf openssl-$OPENSSL_VERSION.tar.gz \
+    && cd openssl-$OPENSSL_VERSION \
     && ./config --prefix=/usr \
     && make -j64 \
     && make install -j64 \
     # Nginx rtmp
     && cd /soft/ \
-    && git clone --depth 1 --branch $RTMP_VERSION https://github.com/arut/nginx-rtmp-module.git \
+    && RTMP_MODULE_DIR=/soft/rtmp-module/ \
+    && git clone --depth 1 --branch $RTMP_MODULE_VERSION https://github.com/arut/nginx-rtmp-module.git $RTMP_MODULE_DIR \
     # Nginx
     && cd /soft/ \
     && useradd --no-create-home nginx \
-    && wget https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
-    && tar -zxf nginx-${NGINX_VERSION}.tar.gz \
-    && cd nginx-${NGINX_VERSION} \
+    && wget https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz \
+    && tar -zxf nginx-$NGINX_VERSION.tar.gz \
+    && cd nginx-$NGINX_VERSION \
     && ./configure \
 			--with-cc-opt="-O3" \
             --sbin-path=/usr/sbin/nginx \
@@ -50,7 +51,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
             --error-log-path=/dev/stdout \
             --http-log-path=/dev/stdout  \
             --with-http_ssl_module \
-            --with-openssl=/soft/openssl-${OPENSSL_VERSION}/ \
+            --with-openssl=/soft/openssl-$OPENSSL_VERSION/ \
 			--with-http_secure_link_module \
             --with-http_addition_module \
             --with-http_realip_module \
@@ -60,11 +61,11 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
             --with-file-aio \
             --with-stream \
             --with-stream_ssl_module \
-            --add-module=../nginx-rtmp-module \
+            --add-module=$RTMP_MODULE_DIR \
             --with-http_dav_module \
     && make -j64 \
     && make install -j64 \
-    && export LD_LIBRARY_PATH=/usr/local/lib:${LD_LIBRARY_PATH} \
+    && export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH \
     #
     && groupmod -g 1008 nginx \
     && usermod -u 1008 nginx \
